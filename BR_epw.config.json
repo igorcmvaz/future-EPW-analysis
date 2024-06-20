@@ -1,0 +1,14 @@
+{
+    "version": "v0.1",
+    "sources":
+    [
+        {
+            "website_url": "https://climate.onebuilding.org/WMO_Region_3_South_America/BRA_Brazil/index.html",
+            "search_suffix": "TMYx.2007-2021.zip"
+        },
+        {
+            "website_url": "https://climate.onebuilding.org/WMO_Region_3_South_America/BRA_Brazil/index.html",
+            "search_suffix": "TMYx.2004-2018.zip"
+        }
+    ]
+}
