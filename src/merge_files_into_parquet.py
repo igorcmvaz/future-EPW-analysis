@@ -11,10 +11,6 @@ from ladybug.epw import EPW
 from polars.datatypes import Datetime, Float64, Int32, Int64, String
 
 
-UTCI_WIND_LOWER_BOUND = 0.50001
-UTCI_WIND_UPPER_BOUND = 16.99999
-
-
 def validate_io_paths(args) -> dict[str, Path]:
     """
     Validate path to input dir and chosen output file path and return corresponding
@@ -105,89 +101,6 @@ def parse_filename(file_path: Path) -> dict[str, str | int]:
     }
 
 
-def compute_heat_index(
-        dry_bulb_temperature: tuple[float],
-        relative_humidity: tuple[int]) -> list[float]:
-    """
-    Imports Heat Index function from 'pythermalcomfort.models' and uses it to compute the
-    model values for an array of values of temperature and relative humidity. Inputs must
-    have the same size.
-
-    Args:
-        dry_bulb_temperature (tuple[float]): Dry bulb temperature values.
-        relative_humidity (tuple[int]): Relative humidity values.
-
-    Returns:
-        list[float]: Heat index calculated for each item in the input, with same size
-        as inputs.
-    """
-    from pythermalcomfort.models import heat_index
-    return [heat_index(tdb, rh) for tdb, rh in zip(
-        dry_bulb_temperature, relative_humidity, strict=True)]
-
-
-def saturate(value: float, lower_bound: float, upper_bound: float) -> float:
-    """
-    Applies saturation to a value, keeping it between its lower and upper bounds.
-
-    Args:
-        value (float): Value to be saturated.
-        lower_bound (float): Lower boundary.
-        upper_bound (float): Upper boundary.
-
-    Returns:
-        float: Value after applying saturation.
-    """
-    return min(max(value, lower_bound), upper_bound)
-
-
-def compute_comfort_models(
-        dry_bulb_temperature: list[float],
-        relative_humidity: list[int],
-        wind_speed: list[float],
-        limit_utci_inputs=True,
-        ) -> dict[str, list]:
-    """
-    Imports Discomfort Index and UTCI functions from 'pythermalcomfort.models', and returns
-    a dictionary with lists of each output, including Heat Index.
-
-    Args:
-        dry_bulb_temperature (tuple[float]): Dry bulb temperature values
-        relative_humidity (tuple[int]): Relative humidity values.
-        wind_speed (tuple[float]): Wind speed values.
-        limit_utci_inputs (bool): Same as 'limit_inputs' flag for 'utci' model. If false, a
-            saturation function is used instead for Wind Speed (ensuring values are kept
-            inside the model's working range).
-
-    Returns:
-        dict[str, list[float | str]]: Object with one key for each output from the models,
-        corresponding values are lists of the computed variables.
-    """
-    from pythermalcomfort.models import discomfort_index, utci
-
-    discomfort_model = discomfort_index(
-        tdb=dry_bulb_temperature,
-        rh=relative_humidity)
-
-    if limit_utci_inputs:
-        wind_speed = [
-            saturate(v, UTCI_WIND_LOWER_BOUND, UTCI_WIND_UPPER_BOUND) for v in wind_speed]
-    utci_model = utci(
-        tdb=dry_bulb_temperature,
-        tr=dry_bulb_temperature,
-        v=wind_speed,
-        rh=relative_humidity,
-        return_stress_category=True,
-        limit_inputs=limit_utci_inputs)
-    return {
-        "discomfort_index": discomfort_model.get("di"),
-        "discomfort_condition": discomfort_model.get("discomfort_condition"),
-        "heat_index": compute_heat_index(dry_bulb_temperature, relative_humidity),
-        "utci": utci_model.get("utci"),
-        "stress_category": utci_model.get("stress_category")
-    }
-
-
 def main(args):
     setup_start = time.perf_counter()
     logging.basicConfig(
@@ -216,7 +129,6 @@ def main(args):
             "Relative Humidity": Int64,
             "Atmospheric Station Pressure": Int64,
             "Horizontal Infrared Radiation Intensity": Int64,
-            "Global Horizontal Radiation": Int64,
             "Direct Normal Radiation": Int64,
             "Diffuse Horizontal Radiation": Int64,
             "Wind Direction": Int64,
@@ -225,9 +137,9 @@ def main(args):
             "Opaque Sky Cover": Int64}
     if not args.strict:
         import_start = time.perf_counter()
-        from pythermalcomfort.models import discomfort_index, heat_index, utci  # noqa: F401
+        from computation import compute_comfort_models
         logging.info(
-            f"Time to import comfort models from 'pythermalcomfort': "
+            f"Time to import computation functions and models from 'computation.py': "
             f"{time.perf_counter() - import_start:.3f}s")
 
         output_schema.update({
@@ -270,7 +182,6 @@ def main(args):
                 epw_file.atmospheric_station_pressure.values,
             "Horizontal Infrared Radiation Intensity":
                 epw_file.horizontal_infrared_radiation_intensity.values,
-            "Global Horizontal Radiation": epw_file.global_horizontal_radiation.values,
             "Direct Normal Radiation": epw_file.direct_normal_radiation.values,
             "Diffuse Horizontal Radiation":
                 epw_file.diffuse_horizontal_radiation.values,
@@ -304,11 +215,13 @@ def main(args):
             process_metrics["exception_counter"] += 1
         else:
             output_df.extend(current_data)
+
             file_counter = index + 1 - process_metrics["exception_counter"]
+            process_metrics["duration"].append(time.perf_counter() - start_time)
             logging.info(
-                f"({file_counter}/{len(epw_file_collection)}) Added data from "
-                f"file '{file.name}' to the output dataframe")
-        process_metrics["duration"].append(time.perf_counter() - start_time)
+                f"({file_counter}/{len(epw_file_collection)}) Added data from file "
+                f"'{file.name}' to the output dataframe in "
+                f"{round(1000*process_metrics['duration'][-1])}ms")
 
         if args.export_csv and not process_metrics["exported_csv"]:
             current_data.write_csv(Path(output_filename.stem).with_suffix(".csv"))
