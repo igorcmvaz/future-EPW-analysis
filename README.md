@@ -18,6 +18,12 @@ python find_links_and_download.py ../BR_epw.config.json -l 10
 ```
 <!-- TODO -->
 
+## Extracting ZIP files with EPW elements inside
+```bash
+python zip_to_epw.py -h
+python zip_to_epw.py path/to/zips
+```
+
 ## Executing the Future Weather Generator
 Requires Java (JRE) to be installed
 ```bash
