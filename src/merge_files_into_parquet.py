@@ -129,6 +129,7 @@ def main(args):
             "Relative Humidity": Int64,
             "Atmospheric Station Pressure": Int64,
             "Horizontal Infrared Radiation Intensity": Int64,
+            "Global Horizontal Radiation": Int64,
             "Direct Normal Radiation": Int64,
             "Diffuse Horizontal Radiation": Int64,
             "Wind Direction": Int64,
@@ -182,6 +183,7 @@ def main(args):
                 epw_file.atmospheric_station_pressure.values,
             "Horizontal Infrared Radiation Intensity":
                 epw_file.horizontal_infrared_radiation_intensity.values,
+            "Global Horizontal Radiation": epw_file.global_horizontal_radiation.values,
             "Direct Normal Radiation": epw_file.direct_normal_radiation.values,
             "Diffuse Horizontal Radiation":
                 epw_file.diffuse_horizontal_radiation.values,
