@@ -226,7 +226,8 @@ if __name__ == "__main__":
         "Defaults to 'output'")
     parser.add_argument(
         "-l", "--limit", type=int, default=10,
-        help="maximum number of files to download from the links found in the source")
+        help="maximum number of files to download from the links found in the source. "
+        "Defaults to 10")
     parser.add_argument(
         "-s", "--start", type=int, default=1,
         help="from which link to start, considering link indices start at 1 in a list "
