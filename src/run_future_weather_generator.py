@@ -70,9 +70,9 @@ def main(args):
     if len(epw_file_collection) >= 5 and not args.accept_prompts:
         logging.warning(
             f"This operation might take a few minutes to complete for each file, so your "
-            f"wait time for everything to be completed will be significant. Estimated wait "
-            f"time is between {round(270*len(epw_file_collection)/60)}min and "
-            f"{round(400*len(epw_file_collection)/60)}min")
+            f"wait time for everything to be completed will be significant. Wait times can "
+            f"reach {round(340*len(epw_file_collection)/60)}min, but might be considerably "
+            f"shorter depending on your hardware")
         response = input("Continue? (Y/n)\n> ")
         if response.casefold() in {x.casefold() for x in {"no", "n"}}:
             logging.info("Operation cancelled by the user")
