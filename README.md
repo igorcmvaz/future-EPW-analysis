@@ -41,7 +41,7 @@ python merge_files_into_parquet.py -h
 python merge_files_into_parquet.py ../sample_input --csv
 ```
 
-### Confort Models
+### Comfort Models
 Calculated variables are introduced in the files based on the models from `pythermalcomfort`. For more information, visit [their documentation site](https://pythermalcomfort.readthedocs.io/en/latest/reference/pythermalcomfort.html#comfort-models). The models are included in the exported files in an 'opt-out' format, so that passing the `-s` or `--strict` option will prevent `pythermalcomfort` from being imported, skip computation of the models and exclude corresponding entries from the output files. The computation of such models was extracted to [separate file](src/computation.py).
 
 **Note:** Bear in mind that merely importing `pythermalcomfort` comes with a significant overhead for the script, and the computation of the values for comfort models are executed in each iteration, also noticeably impacting overall performance.  For that reason, the imports are conditional and only executed if the models are in fact desired (no `--strict` option).
