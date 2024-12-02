@@ -27,6 +27,9 @@ INTERPOLATION_METHOD_ID = 0     # bilinear interpolation
 DO_LIMIT_VARIABLES = "true"
 SOLAR_HOUR_ADJUSTMENT = 2       # by day
 DIFFUSE_IRRADIATION_MODEL = 1   # Engerer (2015)
+URBAN_HEAT_ISLAND_EFFECT = True
+BUFFER_AREA_TEMPERATURE_LEVEL = 0
+URBAN_DENSITY = 0
 
 
 def list_epw_files(directory: Path) -> list[Path]:
@@ -95,7 +98,10 @@ def main(args):
             str(INTERPOLATION_METHOD_ID),
             DO_LIMIT_VARIABLES,
             str(SOLAR_HOUR_ADJUSTMENT),
-            str(DIFFUSE_IRRADIATION_MODEL)
+            str(DIFFUSE_IRRADIATION_MODEL),
+            str(URBAN_HEAT_ISLAND_EFFECT),
+            str(BUFFER_AREA_TEMPERATURE_LEVEL),
+            str(URBAN_DENSITY)
         ]
         logging.debug(
             f"Executing FutureWeatherGenerator using the following command:\n"
