@@ -60,3 +60,13 @@ When committing to this repository, following convention is advised:
 * test: updates to tests
 
 For further reference on writing good commit messages, see [Conventional Commits](https://www.conventionalcommits.org).
+
+
+# Roadmap
+Next steps, planned development, pending issues, known bugs, etc:
+- [ ] Reestructure code using classes to distribute functionality and provide abstractions between layers
+- [ ] Add a single point of entry to the code
+- [ ] Rename files and directories for improved readability
+- [ ] Implement parallel computing for expensive functions
+- [ ] Add tests
+- [ ] Finish README, including proper instructions and examples
