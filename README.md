@@ -75,7 +75,7 @@ For further reference on writing good commit messages, see [Conventional Commits
 
 Next steps, planned development, pending issues, known bugs, etc:
 
-* [ ] Apply updates to parameters given new versions of the FWG in [/src/run_future_weather_generator.py](/src/run_future_weather_generator.py)
+* [x] Apply updates to parameters given new versions of the FWG in [/src/run_future_weather_generator.py](/src/run_future_weather_generator.py)
 * [ ] Reestructure code using classes to distribute functionality and provide abstractions between layers
 * [ ] Add a single point of entry to the code
 * [ ] Rename files and directories for improved readability
