@@ -27,9 +27,9 @@ INTERPOLATION_METHOD_ID = 0     # bilinear interpolation
 DO_LIMIT_VARIABLES = "true"
 SOLAR_HOUR_ADJUSTMENT = 2       # by day
 DIFFUSE_IRRADIATION_MODEL = 1   # Engerer (2015)
-URBAN_HEAT_ISLAND_EFFECT = True
-BUFFER_AREA_TEMPERATURE_LEVEL = 0
-URBAN_DENSITY = 0
+URBAN_HEAT_ISLAND_EFFECT = [False, True]
+BUFFER_AREA_TEMPERATURE_LEVELS = range(0, 6)
+URBAN_DENSITIES = range(0, 5)
 
 
 def list_epw_files(directory: Path) -> list[Path]:
@@ -56,14 +56,54 @@ def list_epw_files(directory: Path) -> list[Path]:
     return epw_file_collection
 
 
+def _log_result(
+        index: int, total_items: int, file_name: str, error: str | None = None) -> None:
+    if error:
+        logging.error(
+            f"({index}/{total_items}) Something went wrong while processing '{file_name}', "
+            f", see details:\n{error}")
+    else:
+        logging.info(
+            f"({index}/{total_items}) Successfully processed file '{file_name}'")
+
+
+def _config_urban_heat_island_effect(
+        index: int,
+        total_items: int,
+        file_name: str,
+        urban_heat_island_flag: bool,
+        buffer_area_level: int,
+        urban_density: int) -> list[str]:
+    urban_heat_island_log = "ON" if urban_heat_island_flag else "OFF"
+    log_string = (
+        f"({index}/{total_items}) Processing file '{file_name}' with pre-processing of "
+        f"urban heat island effect {urban_heat_island_log}")
+    if urban_heat_island_flag:
+        log_string += (
+            f". Buffer Area Level: {buffer_area_level}, "
+            f"Urban Density Level: {urban_density}")
+    logging.info(log_string)
+
+    return [
+        str(urban_heat_island_flag).lower(),
+        str(buffer_area_level),
+        str(urban_density)
+    ]
+
+
 def main(args):
+    log_level = logging.DEBUG
+    if args.quiet == 1:
+        log_level = logging.INFO
+    elif args.quiet == 2:
+        log_level = logging.WARNING
+    elif args.quiet >= 3:
+        log_level = logging.ERROR
     logging.basicConfig(
         format="%(asctime)s    %(levelname)-8.8s: %(message)s",
         datefmt="%Y-%m-%d %H:%M:%S",
-        level=logging.INFO,
+        level=log_level,
     )
-    if args.quiet:
-        logging.getLogger().setLevel(logging.WARNING)
 
     path_to_jar = Path(args.jar_path)
     path_to_epw_input = Path(args.epw_path)
@@ -81,45 +121,51 @@ def main(args):
             logging.info("Operation cancelled by the user")
             return
 
-    for index, epw_file in enumerate(sorted(epw_file_collection)):
-        logging.info(
-            f"({index+1}/{len(epw_file_collection)}) Processing file {epw_file.name}")
-        command = [
-            "java",
-            "-cp",
-            str(path_to_jar.resolve()),
-            "futureweathergenerator.Morph",
-            str(epw_file.resolve()),
-            ",".join(GCM_MODELS),
-            str(ENSEMBLE),
-            str(MONTH_TRANSITION_HOURS),
-            str(output_path.resolve()) + "/",
-            MULTITHREAD_COMPUTATION,
-            str(INTERPOLATION_METHOD_ID),
-            DO_LIMIT_VARIABLES,
-            str(SOLAR_HOUR_ADJUSTMENT),
-            str(DIFFUSE_IRRADIATION_MODEL),
-            str(URBAN_HEAT_ISLAND_EFFECT),
-            str(BUFFER_AREA_TEMPERATURE_LEVEL),
-            str(URBAN_DENSITY)
-        ]
-        logging.debug(
-            f"Executing FutureWeatherGenerator using the following command:\n"
-            f"{' '.join(command)}")
+    buffer_area_levels = [0]
+    urban_densities = [0]
+    index = 1
+    total_items = len(epw_file_collection)*(
+        1 + len(BUFFER_AREA_TEMPERATURE_LEVELS)*len(URBAN_DENSITIES))
+    for epw_file in sorted(epw_file_collection):
+        for urban_heat_island_flag in URBAN_HEAT_ISLAND_EFFECT:
+            if urban_heat_island_flag:
+                buffer_area_levels = BUFFER_AREA_TEMPERATURE_LEVELS
+                urban_densities = URBAN_DENSITIES
+            for buffer_area_level in buffer_area_levels:
+                for urban_density in urban_densities:
+                    urban_heat_island_commands = _config_urban_heat_island_effect(
+                        index, total_items, epw_file.name, urban_heat_island_flag,
+                        buffer_area_level, urban_density)
+                    command = [
+                        "java",
+                        "-cp",
+                        str(path_to_jar.resolve()),
+                        "futureweathergenerator.Morph",
+                        str(epw_file.resolve()),
+                        ",".join(GCM_MODELS),
+                        str(ENSEMBLE),
+                        str(MONTH_TRANSITION_HOURS),
+                        str(output_path.resolve()) + "/",
+                        MULTITHREAD_COMPUTATION,
+                        str(INTERPOLATION_METHOD_ID),
+                        DO_LIMIT_VARIABLES,
+                        str(SOLAR_HOUR_ADJUSTMENT),
+                        str(DIFFUSE_IRRADIATION_MODEL),
+                        ":".join(urban_heat_island_commands)
+                    ]
+                    logging.debug(
+                        f"Executing FutureWeatherGenerator using the following command:\n"
+                        f"{' '.join(command)}")
 
-        start_time = time.perf_counter()
-        result = subprocess.run(command, capture_output=True, text=True)
-        logging.info(
-            f"Operation completed in {round(time.perf_counter() - start_time)}s "
-            f"with return code {result.returncode}")
-        if result.stderr:
-            logging.error(
-                f"({index+1}/{len(epw_file_collection)}) Something went wrong while "
-                f"processing '{epw_file.name}', see details:\n{result.stderr}")
-        else:
-            logging.info(
-                f"({index+1}/{len(epw_file_collection)}) Successfully processed file "
-                f"'{epw_file.name}'")
+                    start_time = time.perf_counter()
+                    result = subprocess.run(command, capture_output=True, text=True)
+                    logging.info(
+                        f"Operation completed in {round(time.perf_counter() - start_time)}s"
+                        f" with return code {result.returncode}")
+                    _log_result(index, total_items, epw_file.name, result.stderr)
+                    index += 1
+        buffer_area_levels = [0]
+        urban_densities = [0]
 
 
 if __name__ == "__main__":
@@ -131,8 +177,9 @@ if __name__ == "__main__":
         "epw_path", type=str, metavar="path/to/epw",
         help="path to the directory containing the EPW files to be used")
     parser.add_argument(
-        "-q", "--quiet", action="store_true",
-        help="turn on quiet mode, which hides log entries of levels lower than WARNING")
+        "-q", "--quiet", action="count", default=0,
+        help="turn on quiet mode (cumulative), which hides log entries of levels lower "
+        "than INFO/WARNING")
     parser.add_argument(
         "-y", action="store_true", dest="accept_prompts",
         help="consider 'yes' as input for any user prompts")
