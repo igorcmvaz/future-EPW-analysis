@@ -9,9 +9,11 @@ __pycache__/
 *.egg
 *.egg-info/
 *.epw
+*.jar
 *.log
 *.nc
 *.parquet
+*.stat
 build/
 develop-eggs/
 dist/

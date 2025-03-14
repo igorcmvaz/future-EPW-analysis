@@ -8,7 +8,7 @@ from pathlib import Path
 
 import polars as pl
 from ladybug.epw import EPW
-from polars.datatypes import Datetime, Float64, Int32, Int64, String
+from polars.datatypes import Datetime, Float64, Int32, Int64, String, Boolean
 
 
 def validate_io_paths(args) -> dict[str, Path]:
@@ -61,7 +61,7 @@ def list_epw_files(directory: Path) -> list[Path]:
         list[Path]: List of Path objects for each EPW file found in the directory.
     """
     epw_file_collection = [
-        file for file in directory.iterdir() if file.suffix.casefold() == ".epw".casefold()]
+        file for file in directory.iterdir() if file.suffix.casefold() == ".epw"]
     if not epw_file_collection:
         logging.warning("No EPW files found in the selected path")
         raise ValueError("Selected path contains no EPW files.")
@@ -70,8 +70,12 @@ def list_epw_files(directory: Path) -> list[Path]:
         f"({directory.resolve()})")
     return epw_file_collection
 
-
-def parse_filename(file_path: Path) -> dict[str, str | int]:
+# BRA_AC_Cruzeiro.do.Sul.Intl.AP_Ensemble_UHI_Urban_High_Buffer_Auto_ssp126_2080.epw
+# BRA_AC_Cruzeiro.do.Sul.Intl.AP_Ensemble_UHI_Urban_High_Buffer_Auto_ssp126_2080.epw
+# BRA_AC_Cruzeiro.do.Sul.Intl.AP_Ensemble_UHI_Urban_VeryHigh_Buffer_VeryHigh_ssp126_2080.epw
+# BRA_AC_Cruzeiro.do.Sul.Intl.AP_Ensemble_ssp370_2080.epw
+# BRA_AC_Cruzeiro.do.Sul.Intl.AP_UHI_Urban_High_Buffer_High_Present-day.epw
+def parse_filename(file_path: Path) -> dict[str, str | int | bool]:
     """
     Parses a file name to provide values for scenario and year.
 
@@ -88,16 +92,28 @@ def parse_filename(file_path: Path) -> dict[str, str | int]:
         file_path (Path): Path object that points to the file to be parsed.
 
     Returns:
-        dict[str, str | int]: Scenario and Year key and values.
+        dict[str, str | int | bool]: #TODO update docstring.
     """
     scenario = "Baseline"
-    year = int(file_path.stem[-4:])
+    sections = [
+        section.casefold() for section in file_path.stem.split(".")[-1].split("_")[1:]]
+    urban_heat_island_pre_processing = False
+    buffer_area_temperature_level = None
+    urban_density = None
+    if "uhi" in sections:
+        urban_heat_island_pre_processing = True
+        buffer_area_temperature_level = sections[sections.index("buffer") + 1]
+        urban_density = sections[sections.index("urban") + 1]
+    period = int(sections[-1])
     if "ssp".casefold() in file_path.stem.casefold():
-        scenario = file_path.stem.split("_")[-2].upper()
+        scenario = sections[-2].upper()
 
     return {
         "scenario": scenario,
-        "year": year,
+        "period": period,
+        "UHI_pre_processing": urban_heat_island_pre_processing,
+        "buffer_area_temperature_level": buffer_area_temperature_level,
+        "urban_density": urban_density
     }
 
 
@@ -121,6 +137,10 @@ def main(args):
             "Latitude": Float64,
             "Longitude": Float64,
             "Elevation": Float64,
+            # TODO: add UHI parameters
+            "UHI Pre-Processing": Boolean,
+            "Buffer Area Temperature": String,
+            "Urban Density": String,
             "Scenario/Code": String,
             "Scenario/Year": Int32,
             "Datetime": Datetime,

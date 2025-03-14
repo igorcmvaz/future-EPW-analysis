@@ -1,0 +1,24 @@
+GCM_MODELS = [
+    "BCC_CSM2_MR",
+    "CanESM5",
+    "CanESM5_1",
+    "CanESM5_CanOE",
+    "CAS_ESM2_0",
+    "CMCC_ESM2",
+    "CNRM_CM6_1_HR",
+    "CNRM_ESM2_1",
+    "EC_Earth3",
+    "EC_Earth3_Veg",
+    "FGOALS_g3",
+    "GISS_E2_1_G"
+    ]
+ENSEMBLE = (0, 1)
+MONTH_TRANSITION_HOURS = range(0, 367)
+MULTITHREAD_COMPUTATION = "true"
+INTERPOLATION_METHOD_ID = 0     # bilinear interpolation
+DO_LIMIT_VARIABLES = "true"
+SOLAR_HOUR_ADJUSTMENT = 2       # by day
+DIFFUSE_IRRADIATION_MODEL = 1   # Engerer (2015)
+URBAN_HEAT_ISLAND_EFFECT = "true"
+BUFFER_AREA_TEMPERATURE_LEVEL = 0
+URBAN_DENSITY = 0
